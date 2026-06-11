@@ -3,7 +3,6 @@
     "name": "Family Meds",
     "slug": "family-meds-app",
     "version": "1.0.0",
-    "sdkVersion": "54.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "familymedsapp",
@@ -13,8 +12,7 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.familymeds.app",
       "infoPlist": {
-        "NSCameraUsageDescription": "Used to scan medicine barcodes.",
-        "NSUserNotificationUsageDescription": "Used to remind you to take your medicine."
+        "NSUserNotificationsUsageDescription": "Used to remind you to take your medicine."
       }
     },
     "android": {

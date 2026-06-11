@@ -12,16 +12,18 @@ import { deleteToken } from '../storage/token';
 import { registerNotifications } from '../notifications/register';
 import { LanguageSwitcher } from '../components/ui/LanguageSwitcher';
 
-// SDK 54 / expo-notifications@0.29.x handler format
+// SDK 56 / expo-notifications handler
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,   // SDK 54 uses shouldShowAlert (not shouldShowBanner)
+      shouldShowBanner: true,  // SDK 56 API
+      shouldShowList: true,
       shouldPlaySound: true,
       shouldSetBadge: false,
     }),
   });
 }
+
 
 interface Medicine {
   id: string;
@@ -55,8 +57,12 @@ async function scheduleReminder(medicine: Medicine): Promise<void> {
           body: `Time to take ${medicine.name} (${medicine.dosagePerIntake} ${medicine.unit})`,
           sound: true,
         },
-        // SDK 54 DailyTriggerInput — fires every day at this time
-        trigger: { hour: h, minute: m, repeats: true },
+        // SDK 56 daily repeating trigger
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DAILY,
+          hour: h,
+          minute: m,
+        },
       });
     } catch (err) {
       console.log('Schedule reminder failed:', err);
