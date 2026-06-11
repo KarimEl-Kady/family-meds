@@ -78,20 +78,69 @@ export default function HomeScreen() {
   const [medicines, setMedicines] = useState<Medicine[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [notifScheduled, setNotifScheduled] = useState(0); // count of scheduled reminders
+
+  /** Fire a test notification in 5 seconds — lets you verify the system works */
+  const testNotification = async () => {
+    if (Platform.OS === 'web') {
+      window.alert('Notifications only work on native (iOS/Android).');
+      return;
+    }
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      console.log('[Notif] Current permission status:', status);
+      if (status !== 'granted') {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        if (newStatus !== 'granted') {
+          Alert.alert('Permission Denied', 'Please enable notifications in iPhone Settings → Family Meds.');
+          return;
+        }
+      }
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: '✅ Test Notification',
+          body: 'Notifications are working! Your medicine reminders will fire daily.',
+          sound: true,
+        },
+        trigger: { seconds: 5 }, // fires in 5 seconds
+      });
+      Alert.alert('🔔 Test Sent', 'Put the app in background — notification fires in 5 seconds.');
+      console.log('[Notif] Test notification scheduled (5 seconds)');
+    } catch (err) {
+      console.error('[Notif] Test failed:', err);
+      Alert.alert('Error', String(err));
+    }
+  };
 
   const loadMedicines = useCallback(async () => {
     try {
+      console.log('[API] GET /medicines...');
       const res = await api.get<Medicine[]>('/medicines');
+      console.log(`[API] Got ${res.data.length} medicines`);
       setMedicines(res.data);
-      // Schedule notifications only on native (not supported on web)
+      // Schedule notifications only on native
       if (Platform.OS !== 'web') {
         try {
-          await Notifications.cancelAllScheduledNotificationsAsync();
-          for (const m of res.data) await scheduleReminder(m);
-        } catch { /* notification errors should not block UI */ }
+          const { status } = await Notifications.getPermissionsAsync();
+          console.log('[Notif] Permission status:', status);
+          if (status === 'granted') {
+            await Notifications.cancelAllScheduledNotificationsAsync();
+            let count = 0;
+            for (const m of res.data) {
+              await scheduleReminder(m);
+              count += m.scheduleTimes?.length ?? 0;
+            }
+            setNotifScheduled(count);
+            console.log(`[Notif] Scheduled ${count} daily reminders`);
+          } else {
+            console.log('[Notif] Permission not granted — reminders skipped');
+          }
+        } catch (e) {
+          console.log('[Notif] Scheduling error:', e);
+        }
       }
     } catch (e: any) {
-      console.log('Load medicines failed:', e?.response?.status, e?.message);
+      console.log('[API] Load medicines failed:', e?.response?.status, e?.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -174,10 +223,26 @@ export default function HomeScreen() {
       <View style={[s.header, isRTL && s.rowReverse]}>
         <View>
           <Text style={s.headerTitle}>{t('medicines.title')}</Text>
-          <Text style={s.headerSub}>{medicines.length} {isRTL ? 'دواء' : 'medicines'}</Text>
+          <Text style={s.headerSub}>
+            {medicines.length} {isRTL ? 'دواء' : 'medicines'}
+            {Platform.OS !== 'web' && notifScheduled > 0 && (
+              <Text style={{ color: '#6ee7b7', fontSize: 11 }}>
+                {'  '}🔔 {notifScheduled} reminders set
+              </Text>
+            )}
+          </Text>
         </View>
         <View style={[s.headerRight, isRTL && s.rowReverse]}>
           <LanguageSwitcher />
+          {Platform.OS !== 'web' && (
+            <TouchableOpacity
+              onPress={testNotification}
+              style={[s.iconCircle, { backgroundColor: '#1e3a5f' }]}
+              accessibilityLabel="test-notification-button"
+            >
+              <Text style={{ fontSize: 16 }}>🔔</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={logout} style={s.iconCircle} accessibilityLabel="logout-button">
             <Text style={{ fontSize: 18 }}>↩</Text>
           </TouchableOpacity>
