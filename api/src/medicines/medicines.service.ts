@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Medicine } from './entities/medicine.entity';
 import { CreateMedicineDto } from './dto/create-medicine.dto';
 import { DoseLog } from './entities/dose-log.entity';
+import { DoseLogsService } from 'src/dose-logs/dose-logs.service';
 
 @Injectable()
 export class MedicinesService {
@@ -18,6 +19,8 @@ export class MedicinesService {
 
     @InjectRepository(DoseLog)
     private readonly doseLogRepository: Repository<DoseLog>,
+
+    private readonly doseLogsService: DoseLogsService,
   ) {}
 
   async create(userId: string, dto: CreateMedicineDto) {
@@ -35,42 +38,37 @@ export class MedicinesService {
     });
   }
 
-  async takeMedicine(userId: string, medicineId: string, quantity: number) {
+  async takeMedicine(medicineId: string, userId: string) {
     const medicine = await this.medicinesRepository.findOne({
-      where: { id: medicineId, userId },
+      where: {
+        id: medicineId,
+        userId,
+      },
     });
 
-    if (!medicine) {
-      throw new NotFoundException('Medicine not found');
-    }
-
-    if (!quantity || quantity <= 0) {
-      throw new BadRequestException('Invalid quantity');
-    }
-
-    if (medicine.quantity < quantity) {
-      throw new BadRequestException('Not enough quantity left');
-    }
-
-    // 1. Reduce stock
-    medicine.quantity -= quantity;
-
-    await this.medicinesRepository.save(medicine);
-
-    // 2. Create dose log
-    const log = this.doseLogRepository.create({
-      medicineId,
-      userId,
-      quantityTaken: quantity,
-    });
-
-    await this.doseLogRepository.save(log);
-
-    return {
-      medicine,
-      log,
-    };
+  if (!medicine) {
+    throw new NotFoundException('Medicine not found');
   }
+
+  if (medicine.quantity <= 0) {
+    throw new BadRequestException(
+      'Medicine quantity is zero',
+    );
+  }
+
+  medicine.quantity -= medicine.dosagePerIntake;
+
+  await this.medicinesRepository.save(medicine);
+
+  await this.doseLogsService.createLog({
+    medicineId: medicine.id,
+    medicineName: medicine.name,
+    userId,
+    quantityTaken: medicine.dosagePerIntake,
+  });
+
+  return medicine;
+}
 
   async getDoseHistory(userId: string, medicineId: string) {
     return this.doseLogRepository.find({

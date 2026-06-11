@@ -6,6 +6,7 @@ import {
   Request,
   UseGuards,
   Param,
+  Req,
 } from '@nestjs/common';
 
 import { MedicinesService } from './medicines.service';
@@ -28,12 +29,9 @@ export class MedicinesController {
   }
 
   @Post(':id/take')
-  take(
-    @Request() req,
-    @Param('id') id: string,
-    @Body('quantity') quantity: number,
-  ) {
-    return this.medicinesService.takeMedicine(req.user.userId, id, quantity);
+  @UseGuards(JwtAuthGuard)
+  takeMedicine(@Param('id') id: string, @Req() req) {
+    return this.medicinesService.takeMedicine(id, req.user.userId);
   }
 
   @Get(':id/history')

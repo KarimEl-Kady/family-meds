@@ -10,13 +10,14 @@ import { MedicinesModule } from './medicines/medicines.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RemindersModule } from './reminders/reminders.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { DoseLogsModule } from './dose-logs/dose-logs.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
+
     ScheduleModule.forRoot(),
 
     TypeOrmModule.forRootAsync({
@@ -40,10 +41,13 @@ import { NotificationsModule } from './notifications/notifications.module';
       }),
     }),
 
-    DatabaseModule, 
-    UsersModule, 
-    AuthModule, 
-    MedicinesModule, RemindersModule, NotificationsModule,
+    DatabaseModule,
+    UsersModule,
+    AuthModule,
+    MedicinesModule,
+    RemindersModule,
+    NotificationsModule,
+    DoseLogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

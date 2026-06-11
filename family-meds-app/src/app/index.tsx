@@ -24,7 +24,7 @@ export default function LoginScreen() {
       console.log('Login failed', err);
     }
   };
-
+  
   return (
     <View style={{ padding: 20, marginTop: 100 }}>
       <Text style={{ fontSize: 24, marginBottom: 20 }}>
