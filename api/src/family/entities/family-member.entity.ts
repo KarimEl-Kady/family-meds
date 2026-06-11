@@ -3,11 +3,13 @@ import {
   CreateDateColumn, UpdateDateColumn,
 } from 'typeorm';
 
-export enum FamilyStatus {
-  PENDING = 'pending',
-  ACCEPTED = 'accepted',
-  REJECTED = 'rejected',
-}
+export const FamilyStatus = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  REJECTED: 'rejected',
+} as const;
+
+export type FamilyStatus = typeof FamilyStatus[keyof typeof FamilyStatus];
 
 @Entity('family_members')
 export class FamilyMember {
@@ -22,12 +24,9 @@ export class FamilyMember {
   @Column()
   patientId: string;
 
-  @Column({
-    type: 'enum',
-    enum: FamilyStatus,
-    default: FamilyStatus.PENDING,
-  })
-  status: FamilyStatus;
+  /** pending | accepted | rejected — stored as varchar to avoid PostgreSQL enum DDL issues */
+  @Column({ type: 'varchar', length: 20, default: 'pending' })
+  status: string;
 
   @CreateDateColumn()
   createdAt: Date;

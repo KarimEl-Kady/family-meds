@@ -41,14 +41,17 @@ function webConfirm(message: string): boolean {
 }
 
 async function scheduleReminder(medicine: Medicine): Promise<void> {
+  if (Platform.OS === 'web') return; // not supported on web
   if (!medicine.scheduleTimes?.length) return;
   for (const time of medicine.scheduleTimes) {
     const [h, m] = time.split(':').map(Number);
     if (isNaN(h) || isNaN(m)) continue;
-    await Notifications.scheduleNotificationAsync({
-      content: { title: '💊 Reminder', body: `Time to take ${medicine.name}` },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: h, minute: m },
-    });
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: { title: '💊 Reminder', body: `Time to take ${medicine.name}` },
+        trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: h, minute: m },
+      });
+    } catch { /* ignore per-reminder errors */ }
   }
 }
 
@@ -65,10 +68,15 @@ export default function HomeScreen() {
     try {
       const res = await api.get<Medicine[]>('/medicines');
       setMedicines(res.data);
-      await Notifications.cancelAllScheduledNotificationsAsync();
-      for (const m of res.data) await scheduleReminder(m);
-    } catch (e) {
-      console.log('Load medicines failed:', e);
+      // Schedule notifications only on native (not supported on web)
+      if (Platform.OS !== 'web') {
+        try {
+          await Notifications.cancelAllScheduledNotificationsAsync();
+          for (const m of res.data) await scheduleReminder(m);
+        } catch { /* notification errors should not block UI */ }
+      }
+    } catch (e: any) {
+      console.log('Load medicines failed:', e?.response?.status, e?.message);
     } finally {
       setLoading(false);
       setRefreshing(false);
