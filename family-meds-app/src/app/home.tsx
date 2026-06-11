@@ -12,14 +12,16 @@ import { deleteToken } from '../storage/token';
 import { registerNotifications } from '../notifications/register';
 import { LanguageSwitcher } from '../components/ui/LanguageSwitcher';
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+// SDK 54 / expo-notifications@0.29.x handler format
+if (Platform.OS !== 'web') {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,   // SDK 54 uses shouldShowAlert (not shouldShowBanner)
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+}
 
 interface Medicine {
   id: string;
@@ -41,17 +43,24 @@ function webConfirm(message: string): boolean {
 }
 
 async function scheduleReminder(medicine: Medicine): Promise<void> {
-  if (Platform.OS === 'web') return; // not supported on web
+  if (Platform.OS === 'web') return;
   if (!medicine.scheduleTimes?.length) return;
   for (const time of medicine.scheduleTimes) {
     const [h, m] = time.split(':').map(Number);
     if (isNaN(h) || isNaN(m)) continue;
     try {
       await Notifications.scheduleNotificationAsync({
-        content: { title: '💊 Reminder', body: `Time to take ${medicine.name}` },
-        trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour: h, minute: m },
+        content: {
+          title: '💊 Medicine Reminder',
+          body: `Time to take ${medicine.name} (${medicine.dosagePerIntake} ${medicine.unit})`,
+          sound: true,
+        },
+        // SDK 54 DailyTriggerInput — fires every day at this time
+        trigger: { hour: h, minute: m, repeats: true },
       });
-    } catch { /* ignore per-reminder errors */ }
+    } catch (err) {
+      console.log('Schedule reminder failed:', err);
+    }
   }
 }
 
