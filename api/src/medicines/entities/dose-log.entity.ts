@@ -1,27 +1,3 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-} from 'typeorm';
-
-@Entity('dose_logs')
-export class DoseLog {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  medicineId: string;
-
-  @Column()
-  userId: string;
-
-  @Column()
-  quantityTaken: number;
-
-  @Column({ nullable: true })
-  note: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-}
+// Re-export from the canonical single source of truth.
+// Do NOT add another @Entity here — that would create a duplicate table mapping.
+export { DoseLog } from '../../dose-logs/entities/dose-log.entity';

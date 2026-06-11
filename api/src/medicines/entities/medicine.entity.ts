@@ -14,20 +14,29 @@ export class Medicine {
   @Column()
   name: string;
 
-  @Column({ nullable: true })
-  imageUrl: string;
+  @Column({ nullable: true, type: 'text' })
+  imageUrl: string | null;
 
-  @Column()
+  @Column({ type: 'int', default: 0 })
   quantity: number;
 
-  @Column({ default: 1 })
+  @Column({ type: 'int', default: 1 })
   dosagePerIntake: number;
+
+  @Column({ type: 'int', default: 5 })
+  lowStockThreshold: number;
+
+  @Column({ length: 50, default: 'tablet' })
+  unit: string;
 
   @Column('simple-array')
   scheduleTimes: string[];
 
-  @Column({ nullable: true })
-  notes: string;
+  @Column({ nullable: true, type: 'text' })
+  notes: string | null;
+
+  @Column({ default: true })
+  isActive: boolean;
 
   @Column()
   userId: string;

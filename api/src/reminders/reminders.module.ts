@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
 import { RemindersService } from './reminders.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Medicine } from 'src/medicines/entities/medicine.entity';
-import { NotificationsModule } from 'src/notifications/notifications.module';
+import { Medicine } from '../medicines/entities/medicine.entity';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { DoseCheckService } from './dose-check.service';
-import { DoseLog } from 'src/medicines/entities/dose-log.entity';
+import { DoseLogsModule } from '../dose-logs/dose-logs.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Medicine, DoseLog]), NotificationsModule],
+  imports: [
+    TypeOrmModule.forFeature([Medicine]),
+    NotificationsModule,
+    DoseLogsModule,
+  ],
   providers: [RemindersService, DoseCheckService],
 })
 export class RemindersModule {}

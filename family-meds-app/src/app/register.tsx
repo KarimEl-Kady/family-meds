@@ -1,12 +1,10 @@
 /**
- * Login Screen
+ * Register Screen
  *
  * Features:
- * - i18n support (EN/AR)
- * - Input validation
- * - Loading state
- * - Error display
- * - Navigate to Register
+ * - i18n support
+ * - Validation (name, email, password)
+ * - Loading + error states
  */
 import { useState } from 'react';
 import {
@@ -26,26 +24,24 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../api/client';
 import { saveToken } from '../storage/token';
 
-export default function LoginScreen() {
+export default function RegisterScreen() {
   const router = useRouter();
   const { t } = useTranslation();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const validate = (): string | null => {
-    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      return t('auth.invalidEmail');
-    }
-    if (password.length < 8) {
-      return t('auth.passwordTooShort');
-    }
+    if (!name.trim()) return t('auth.nameRequired');
+    if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) return t('auth.invalidEmail');
+    if (password.length < 8) return t('auth.passwordTooShort');
     return null;
   };
 
-  const login = async () => {
+  const register = async () => {
     const validationError = validate();
     if (validationError) {
       setError(validationError);
@@ -56,11 +52,13 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
+      // Register then auto-login
+      await api.post('/auth/register', { name, email, password });
       const res = await api.post('/auth/login', { email, password });
       await saveToken(res.data.accessToken);
       router.replace('/home');
     } catch {
-      setError(t('auth.loginFailed'));
+      setError(t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -72,20 +70,29 @@ export default function LoginScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container}>
-        {/* Header */}
         <View style={styles.header}>
           <Text style={styles.emoji}>💊</Text>
           <Text style={styles.title}>Family Meds</Text>
-          <Text style={styles.subtitle}>{t('auth.login')}</Text>
+          <Text style={styles.subtitle}>{t('auth.register')}</Text>
         </View>
 
-        {/* Form */}
         <View style={styles.form}>
           {error ? (
             <View style={styles.errorBox}>
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
+
+          <Text style={styles.label}>{t('auth.name')}</Text>
+          <TextInput
+            style={styles.input}
+            placeholder={t('auth.namePlaceholder')}
+            placeholderTextColor="#64748b"
+            value={name}
+            onChangeText={(v) => { setName(v); setError(''); }}
+            autoCapitalize="words"
+            accessibilityLabel="name-input"
+          />
 
           <Text style={styles.label}>{t('auth.email')}</Text>
           <TextInput
@@ -113,26 +120,26 @@ export default function LoginScreen() {
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={login}
+            onPress={register}
             disabled={loading}
-            accessibilityLabel="login-button"
+            accessibilityLabel="register-button"
           >
             {loading ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.buttonText}>{t('auth.loginButton')}</Text>
+              <Text style={styles.buttonText}>{t('auth.registerButton')}</Text>
             )}
           </TouchableOpacity>
 
           <View style={styles.divider} />
 
           <TouchableOpacity
-            onPress={() => router.push('/register')}
-            accessibilityLabel="go-to-register"
+            onPress={() => router.push('/')}
+            accessibilityLabel="go-to-login"
           >
             <Text style={styles.linkText}>
-              {t('auth.noAccount')}{' '}
-              <Text style={styles.link}>{t('auth.registerButton')}</Text>
+              {t('auth.haveAccount')}{' '}
+              <Text style={styles.link}>{t('auth.loginButton')}</Text>
             </Text>
           </TouchableOpacity>
         </View>

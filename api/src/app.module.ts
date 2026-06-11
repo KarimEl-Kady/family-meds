@@ -11,6 +11,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RemindersModule } from './reminders/reminders.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { DoseLogsModule } from './dose-logs/dose-logs.module';
+import { FamilyModule } from './family/family.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { DoseLogsModule } from './dose-logs/dose-logs.module';
     RemindersModule,
     NotificationsModule,
     DoseLogsModule,
+    FamilyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

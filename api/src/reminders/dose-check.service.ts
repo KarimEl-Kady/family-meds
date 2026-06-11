@@ -3,8 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Medicine } from '../medicines/entities/medicine.entity';
-import { DoseLog } from '../medicines/entities/dose-log.entity';
 import { NotificationsService } from '../notifications/notifications.service';
+import { DoseLogsService } from '../dose-logs/dose-logs.service';
 
 @Injectable()
 export class DoseCheckService {
@@ -12,38 +12,40 @@ export class DoseCheckService {
     @InjectRepository(Medicine)
     private readonly medicineRepo: Repository<Medicine>,
 
-    @InjectRepository(DoseLog)
-    private readonly doseLogRepo: Repository<DoseLog>,
+    private readonly doseLogsService: DoseLogsService,
 
     private readonly notificationsService: NotificationsService,
   ) {}
 
-  async checkMissedDoses() {
+  async checkMissedDoses(): Promise<void> {
     const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
+    const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
 
-    const medicines = await this.medicineRepo.find();
+    // Only check times in the past today
+    const medicines = await this.medicineRepo.find({
+      where: { isActive: true },
+    });
 
     for (const med of medicines) {
-      if (!med.scheduleTimes) continue;
+      if (!med.scheduleTimes?.length) continue;
 
-      const hasScheduledNow =
-        med.scheduleTimes.includes(currentTime);
+      const hasPastScheduleNow = med.scheduleTimes.some((t) => t <= currentTime);
+      if (!hasPastScheduleNow) continue;
 
-      if (!hasScheduledNow) continue;
+      // Get today's logs for this user & medicine
+      const todayLogs = await this.doseLogsService.findByMedicineAndUser(
+        med.id,
+        med.userId,
+      );
 
-      // check if user already took it today
       const startOfDay = new Date();
       startOfDay.setHours(0, 0, 0, 0);
 
-      const doseTaken = await this.doseLogRepo.findOne({
-        where: {
-          medicineId: med.id,
-          userId: med.userId,
-        },
-      });
+      const takenToday = todayLogs.filter(
+        (log) => new Date(log.takenAt) >= startOfDay,
+      );
 
-      if (!doseTaken) {
+      if (takenToday.length === 0) {
         await this.notificationsService.createReminder(
           med.userId,
           med.id,
